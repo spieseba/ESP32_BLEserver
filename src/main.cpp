@@ -5,14 +5,14 @@
 #include "BLE2902.h"
 
 
-# define controllerServerName "ESP32 Controller"
+# define ServerName "ESP32 Controller"
 
 // See the following for generating UUIDs:
 // https://www.uuidgenerator.net/
 #define SERVICE_UUID "91bad492-b950-4226-aa2b-4ede9fa42f59"
 #define CHARACTERISTIC_UUID "cba1d466-344c-4be3-ab3f-189f80dd7518"
 
-BLECharacteristic joystickInputCharacteristic(CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+BLECharacteristic dataCharacteristic(CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_NOTIFY);
 
 bool deviceConnected = false;
 //Setup callbacks onConnect and onDisconnect
@@ -33,7 +33,7 @@ void setup() {
   Serial.begin(115200);
 
   // Create BLE Device
-  BLEDevice::init(controllerServerName);
+  BLEDevice::init(ServerName);
   
   // Create BLE Server
   BLEServer* pServer = BLEDevice::createServer();
@@ -43,8 +43,8 @@ void setup() {
   BLEService* pService = pServer->createService(SERVICE_UUID);
 
   // Create BLE Characteristics
-  pService->addCharacteristic(&joystickInputCharacteristic);
-  joystickInputCharacteristic.addDescriptor(new BLE2902());
+  pService->addCharacteristic(&dataCharacteristic);
+  dataCharacteristic.addDescriptor(new BLE2902());
 
   // Start the service
   pService->start();
@@ -65,8 +65,8 @@ void loop() {
   }
 
   
-  joystickInputCharacteristic.setValue(&counter, sizeof(uint8_t));
-  joystickInputCharacteristic.notify();
+  dataCharacteristic.setValue(&counter, sizeof(uint8_t));
+  dataCharacteristic.notify();
   Serial.print("Counter: ");
   Serial.println(counter);
   counter++;
