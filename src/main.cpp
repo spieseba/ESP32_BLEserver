@@ -44,6 +44,7 @@ void setup() {
 
   // Create BLE Characteristics
   pService->addCharacteristic(&joystickInputCharacteristic);
+  joystickInputCharacteristic.addDescriptor(new BLE2902());
 
   // Start the service
   pService->start();
@@ -56,10 +57,19 @@ void setup() {
 
 }
 
+uint8_t counter = 0;
+
 void loop() {
   if (deviceConnected) {
     Serial.println("Device connected");
   }
+
+  
+  joystickInputCharacteristic.setValue(&counter, sizeof(uint8_t));
+  joystickInputCharacteristic.notify();
+  Serial.print("Counter: ");
+  Serial.println(counter);
+  counter++;
 
   delay(1000);
 }
