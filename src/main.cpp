@@ -5,17 +5,22 @@
 #include "BLE2902.h"
 
 
-# define ServerName "ESP32 Controller"
+// Define the name of the device
+constexpr char deviceName[] = "ESP32 Controller";
+constexpr char characteristicName[] = "Data";
 
-// See the following for generating UUIDs:
-// https://www.uuidgenerator.net/
-#define SERVICE_UUID "91bad492-b950-4226-aa2b-4ede9fa42f59"
-#define CHARACTERISTIC_UUID "cba1d466-344c-4be3-ab3f-189f80dd7518"
+// Define the UUIDs for the service and the characteristic
+// See the following for generating UUIDs: https://www.uuidgenerator.net/
+constexpr char serviceUUID[] = "91bad492-b950-4226-aa2b-4ede9fa42f59";
+constexpr char characteristicUUID[] = "cba1d466-344c-4be3-ab3f-189f80dd7518";
 
-BLECharacteristic dataCharacteristic(CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+// Create data characteristic
+BLECharacteristic dataCharacteristic(characteristicUUID, BLECharacteristic::PROPERTY_NOTIFY);
 
+
+// Flag to check if a device is connected
 bool deviceConnected = false;
-//Setup callbacks onConnect and onDisconnect
+// Setup callbacks onConnect and onDisconnect to update the deviceConnected flag
 class MyServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     deviceConnected = true;
@@ -25,22 +30,21 @@ class MyServerCallbacks: public BLEServerCallbacks {
   }
 };
 
-
-// joystick input
-uint8_t input = 0;
+// Initialize data to be sent - this is a counter in this example
+uint8_t data = 0;
 
 void setup() {
   Serial.begin(115200);
 
   // Create BLE Device
-  BLEDevice::init(ServerName);
+  BLEDevice::init(deviceName);
   
   // Create BLE Server
   BLEServer* pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
   // Create BLE Service
-  BLEService* pService = pServer->createService(SERVICE_UUID);
+  BLEService* pService = pServer->createService(serviceUUID);
 
   // Create BLE Characteristics
   pService->addCharacteristic(&dataCharacteristic);
@@ -51,25 +55,30 @@ void setup() {
 
   // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->addServiceUUID(serviceUUID);
   pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
 
 }
 
-uint8_t counter = 0;
 
 void loop() {
-  if (deviceConnected) {
-    Serial.println("Device connected");
+  
+  if (deviceConnected)
+    Serial.println("Device connected!");
+  else
+    Serial.println("Waiting for device connection...");
+  
+  while (deviceConnected) 
+  {
+    dataCharacteristic.setValue(&data, sizeof(uint8_t));
+    dataCharacteristic.notify();
+    Serial.print("Sent data: ");
+    Serial.println(data);
+    data++;
+
+    delay(1000);
   }
 
-  
-  dataCharacteristic.setValue(&counter, sizeof(uint8_t));
-  dataCharacteristic.notify();
-  Serial.print("Counter: ");
-  Serial.println(counter);
-  counter++;
-
-  delay(1000);
+  delay(5000);
 }
