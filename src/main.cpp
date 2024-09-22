@@ -6,8 +6,7 @@
 
 
 // Define the name of the device
-constexpr char deviceName[] = "ESP32 Controller";
-constexpr char characteristicName[] = "Data";
+constexpr char deviceName[] = "ESP32 Peripheral";
 
 // Define the UUIDs for the service and the characteristic
 // See the following for generating UUIDs: https://www.uuidgenerator.net/
@@ -20,6 +19,7 @@ BLECharacteristic dataCharacteristic(characteristicUUID, BLECharacteristic::PROP
 
 // Flag to check if a device is connected
 bool deviceConnected = false;
+bool gotDisconnected = false;
 // Setup callbacks onConnect and onDisconnect to update the deviceConnected flag
 class MyServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
@@ -27,6 +27,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
   };
   void onDisconnect(BLEServer* pServer) {
     deviceConnected = false;
+    gotDisconnected = true;
   }
 };
 
@@ -53,10 +54,12 @@ void setup() {
   // Start the service
   pService->start();
 
-  // Start advertising
+  // Setup advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(serviceUUID);
-  pServer->getAdvertising()->start();
+  // Start advertising
+  BLEDevice::startAdvertising();
+  //pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
 
 }
@@ -71,13 +74,21 @@ void loop() {
   
   while (deviceConnected) 
   {
+    Serial.print("Send data: ");
+    Serial.println(data);
     dataCharacteristic.setValue(&data, sizeof(uint8_t));
     dataCharacteristic.notify();
-    Serial.print("Sent data: ");
-    Serial.println(data);
     data++;
 
     delay(1000);
+  }
+  
+  if (gotDisconnected)
+  {
+    Serial.println("Device disconnected!");
+    Serial.println("Restarting advertising...");
+    BLEDevice::startAdvertising();
+    gotDisconnected = false;
   }
 
   delay(5000);
