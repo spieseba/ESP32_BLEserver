@@ -6,7 +6,7 @@
 
 
 // Define the name of the device
-constexpr char deviceName[] = "ESP32 Server";
+constexpr char deviceName[] = "ESP32 BLE Server";
 
 // Define the UUIDs for the service and the characteristic
 // See the following for generating UUIDs: https://www.uuidgenerator.net/
