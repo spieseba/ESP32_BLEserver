@@ -6,7 +6,7 @@
 
 
 // Define the name of the device
-constexpr char deviceName[] = "ESP32 BLE Server";
+constexpr char deviceName[] = "ESP32 BLE Joystick";
 
 // Define the UUIDs for the service and the characteristic
 // See the following for generating UUIDs: https://www.uuidgenerator.net/
@@ -31,8 +31,18 @@ class MyServerCallbacks: public BLEServerCallbacks {
   }
 };
 
-// Initialize data to be sent - this is a counter in this example
-uint8_t data = 0;
+
+// define variables for joystick input
+void getJoystickInput();
+const uint8_t xPin = 14;
+const uint8_t yPin = 13;
+uint16_t xValue = 0;
+uint16_t yValue = 0;
+uint16_t midVal = 1920;
+uint16_t deadzone = 200;
+uint8_t direction = 0;
+uint8_t prevDirection = 0;
+
 
 void setup() {
   Serial.begin(115200);
@@ -66,7 +76,7 @@ void setup() {
 
 
 void loop() {
-  
+
   if (deviceConnected)
     Serial.println("Device connected!");
   else
@@ -74,13 +84,12 @@ void loop() {
   
   while (deviceConnected) 
   {
-    Serial.print("Send data: ");
-    Serial.println(data);
-    dataCharacteristic.setValue(&data, sizeof(uint8_t));
+    getJoystickInput();
+    Serial.print("Send direction: ");
+    Serial.println(direction);
+    dataCharacteristic.setValue(&direction, sizeof(uint8_t));
     dataCharacteristic.notify();
-    data++;
-
-    delay(1000);
+    delay(50);
   }
   
   if (gotDisconnected)
@@ -89,7 +98,27 @@ void loop() {
     Serial.println("Restarting advertising...");
     BLEDevice::startAdvertising();
     gotDisconnected = false;
+    direction = 0;
   }
 
-  delay(5000);
+  delay(5000); 
+}
+
+
+void getJoystickInput()
+{
+  // read analog X and Y values
+  xValue = analogRead(xPin);
+  yValue = analogRead(yPin);
+  // map analog values to directions
+  if (xValue < (midVal - deadzone) && prevDirection != 3) 
+    direction = 1; // left
+  else if (yValue < (midVal - deadzone) && prevDirection != 4)
+    direction = 2; // up
+  else if (xValue > (midVal + deadzone) && prevDirection != 1)
+    direction = 3; // right
+  else if (yValue > (midVal + deadzone) && prevDirection != 2)
+    direction = 4; // down
+  // remember previous direction
+  prevDirection = direction;
 }
